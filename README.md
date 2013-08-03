@@ -1,12 +1,11 @@
 MVC skeleton
 ============
 
-Why? Why not Silex? Why not using composer?
+Main goal
 -------------------------------------------
 
-I've need something standalone for fast prototyping web apps.
-Silex has a lot of dependecies with megabytes of code base.
-
+It's small and fast skeleton for prototyping web apps.
+Inspired by Silex, but this framework is more easy for using and fixing.
 
 Setup
 -----
