@@ -1,5 +1,12 @@
 MVC skeleton
-===================
+============
+
+Why? Why not Silex? Why not using composer?
+-------------------------------------------
+
+I've need something standalone for fast prototyping web apps.
+Silex has a lot of dependecies with megabytes of code base.
+
 
 Setup
 -----
@@ -10,7 +17,7 @@ Setup
 mkdir -p /root/sources/project
 cd /root/sources/project
 git clone https://github.com/flrnull/mvc-skeleton.git
-cd project/mvc-skeleton/misc
+cd mvc-skeleton/misc
 chmod +x server-setup.sh
 ./server-setup.sh
 ```
