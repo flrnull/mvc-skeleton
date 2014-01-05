@@ -30,7 +30,7 @@ Details
     * services/ — service layer, bridge between controllers and models
     * templates/ — twig templates
     * app.php — project routes and ioc defines
-    * config.php.default — default conf (could be overwrite by config.php file)
+    * config.default.php — default conf (could be overwrite by config.php file)
 * vendor/ — external dependencies, never touch it!
 * web/ — web root
     * css/ — styles 

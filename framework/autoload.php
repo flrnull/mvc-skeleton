@@ -7,9 +7,12 @@
  */
 
 // Load project config
-$confPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . "config.php.default";
-if (file_exists($confPath)) {
-    $GLOBALS['config'] = include_once $confPath;
+$confPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
+if (file_exists($confPath."config.default.php")) {
+    $GLOBALS['config'] = include_once $confPath."config.default.php";
+}
+if (file_exists($confPath."config.php")) {
+    include_once $confPath."config.php";
 }
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'common_functions.php';
 
