@@ -30,7 +30,7 @@ return array(
         'framework' => __DIR__ . DS . '..' . DS . 'framework' . DS,
         'vendor' => __DIR__ . DS . '..' . DS . 'vendor' . DS,
         'resources' => __DIR__ . DS . 'resources' . DS,
-        'logs' => __DIR__ . DS . 'resources' . DS . "logs" . DS,
+        'logs' => __DIR__ . DS . '..' . DS . "logs" . DS,
     ),
     
     // Autoload namespaces paths
