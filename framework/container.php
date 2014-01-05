@@ -30,9 +30,10 @@ $container['db'] = $container->share(function($c) {
     return new $c['config']['container']['db'](array(
         'user' => $c['config']['mysql']['user'],
         'pass' => $c['config']['mysql']['pass'],
-        'dbname' => $c['config']['mysql']['db'],
+        'dbname' => $c['config']['mysql']['dbname'],
     ));
 });
+$container['currentDbName'] = $container['config']['mysql']['dbname'];
 
 // ServiceLocator
 $container['services'] = $container->share(function($c){

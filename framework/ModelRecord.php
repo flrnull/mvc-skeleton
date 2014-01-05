@@ -5,12 +5,32 @@
  */
 
 class ModelRecord {
-    
-    protected $table = null;
-    protected $db = null;
-    
+
+    /**
+     * Should be set in child!
+     *
+     * @var string
+     */
+    protected $table;
+
+    /**
+     * Could be set in child
+     *
+     * @var string
+     */
+    protected $dbName;
+
+    /**
+     * IoC container.
+     *
+     * @var Pimple
+     */
+    protected $container;
+
     /**
      * Model properties.
+     * Should be set in child!
+     *
      * For example: array(
      *     array(
      *         "name" => "id",
@@ -18,46 +38,45 @@ class ModelRecord {
      *         "primary" => true,
      *     ),
      * )
-     * 
-     * @var Array
+     *
+     * @var array
      */
     protected $properties = array();
-    
+
     /**
      * Values for model properties.
      * For example: array(
      *     "id" => 1
      * )
-     * 
-     * @var Array
+     *
+     * @var array
      */
     protected $params = array();
-    
-    /**
-     * IoC container.
-     * 
-     * @var Pimple
-     */
-    protected $container = null;
-    
+
     /**
      * Calculated when it needed first time.
-     * 
-     * @var Array 
+     *
+     * @var array
      */
     protected $propertiesByNameArray = null;
 
-
     /**
      * Constructor.
-     * 
+     *
      * @param Pimple $container IoC container
      */
     public function __construct($container) {
         $this->container = $container;
-        $this->db = $container['config']['mysql']['db'];
     }
-    
+
+    /**
+     * @return ModelRecord
+     */
+    public static function instance() {
+        $className = get_called_class();
+        return new $className();
+    }
+
     /**
      * Init model with params.
      */
@@ -83,19 +102,19 @@ class ModelRecord {
             }
         }
     }
-    
+
     /**
      * Params is empty.
-     * 
+     *
      * @return bool
      */
     public function isEmpty() {
         return empty($this->params);
     }
-    
+
     /**
      * Checks in DB all unique params.
-     * 
+     *
      * @return bool
      */
     public function isExists() {
@@ -105,8 +124,8 @@ class ModelRecord {
         $loop = 0;
         $preparedTypes = array();
         foreach ($this->params as $param=>$value) {
-            if (isset($propsByName[$param]['unique']) 
-             && $propsByName[$param]['unique']) 
+            if (isset($propsByName[$param]['unique'])
+                && $propsByName[$param]['unique'])
             {
                 if ($loop) {
                     $query .= " OR ";
@@ -116,7 +135,7 @@ class ModelRecord {
             }
             $loop++;
         }
-        $db = $this->dbConnect($this->db)->prepare($query);
+        $db = $this->dbConnect()->prepare($query);
         foreach ($preparedTypes as $prepared) {
             $db->bindValue($prepared[0], $prepared[1], $prepared[2]);
         }
@@ -127,23 +146,36 @@ class ModelRecord {
             return false;
         }
     }
-    
+
     /**
      * Compares all params with properties array.
-     * @TODO implement
+     *
      * @return bool
      */
     public function isValid() {
-        if ($this->isEmpty()) {
+        try {
+            $result = $this->isValidProcess();
+        } catch (Exception $e) {
             return false;
         }
-        $valid = true;
+        return $result;
+    }
+
+    /**
+     * Compares all params with properties array.
+     * @TODO implement
+     * @throws Exception
+     * @return bool
+     */
+    public function isValidProcess() {
+        if ($this->isEmpty()) {
+            throw new Exception('Object is empty');
+        }
         foreach($this->properties as $property) {
             // First we check that param exists
             if (!isset($property['primary']) || !$property['primary']) {
                 if (!isset($this->params[$property['name']])) {
-                    $valid = false;
-                    break;
+                    throw new Exception("Error on first check. Param {$property['name']} is empty");
                 }
             } else {
                 if (!isset($this->params[$property['name']])) {
@@ -153,32 +185,28 @@ class ModelRecord {
             $paramValue = $this->params[$property['name']];
             // Then we check type
             if ($property['type'] === PDO::PARAM_INT) {
-                if (!is_numeric($paramValue) 
-                 || (isset($property['min']) && $property['min'] > $paramValue)
-                 || (isset($property['max']) && $property['max'] < $paramValue)
+                if (!is_numeric($paramValue)
+                    || (isset($property['min']) && $property['min'] > $paramValue)
+                    || (isset($property['max']) && $property['max'] < $paramValue)
                 ) {
-                    $valid = false;
+                    throw new Exception("Error on int check. Param {$property['name']} = {$paramValue}");
                 }
             } elseif ($property['type'] === PDO::PARAM_STR) {
                 if (!is_string($paramValue)
-                 || (isset($property['regexp']) && !preg_match($property['regexp'], $paramValue))
-                 || (isset($property['min']) && (strlen($paramValue) < $property['min']))
-                 || (isset($property['max']) && (strlen($paramValue) > $property['max']))
+                    || (isset($property['regexp']) && !preg_match($property['regexp'], $paramValue))
+                    || (isset($property['min']) && (strlen($paramValue) < $property['min']))
+                    || (isset($property['max']) && (strlen($paramValue) > $property['max']))
                 ) {
-                    $valid = false;
+                    throw new Exception("Error on string check. Param {$property['name']} = {$paramValue}");
                 }
             }
-            if (!$valid) {
-                break;
-            }
-            
         }
-        return $valid;
+        return true;
     }
-    
+
     /**
      * Creates or updates row in DB.
-     * 
+     *
      * @return Mixed InsertedID or true or false
      */
     public function save() {
@@ -196,10 +224,10 @@ class ModelRecord {
             return $this->update();
         }
     }
-    
+
     /**
      * Updates row in DB.
-     * 
+     *
      * @return Mixed DB query result
      */
     public function update() {
@@ -226,10 +254,33 @@ class ModelRecord {
         $db->execute();
         return $db->lastInsertId();
     }
-    
+
+    /**
+     * Removes from DB.
+     *
+     * @return bool DB query result
+     */
+    public function delete() {
+        if (!$this->isValid()) {
+            return false;
+        }
+        $tableName = $this->table;
+        $primary = $this->propertiesGetPrimaryName();
+        if (!isset($this->params[$primary])) {
+            return false;
+        } else {
+            $value = $this->params[$primary];
+            $query = "DELETE FROM `{$tableName}` WHERE `{$primary}` = :id LIMIT 1";
+            $db = $this->dbConnect()->prepare($query);
+            $db->bindValue(':id', $value);
+            $db->execute();
+            return true;
+        }
+    }
+
     /**
      * Saves current model into DB.
-     * 
+     *
      * @return int Last insert id
      */
     public function create() {
@@ -256,12 +307,13 @@ class ModelRecord {
         $db->execute();
         return $db->lastInsertId();
     }
-    
+
     /**
      * Load one object from DB.
-     * 
+     *
      * @param String $param Param name
      * @param Mixed $value
+     * @return ModelRecord
      */
     public function fetchBy($param, $value) {
         $propsByName = $this->propertiesGetByName();
@@ -273,17 +325,21 @@ class ModelRecord {
             ->bindValue(":{$param}", $value, $propsByName[$param]['type'])
             ->execute();
         $row = $db->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return null;
+        }
         foreach ($this->properties as $property) {
             $this->params[$property['name']] = $row[$property['name']];
         }
+        return $this;
     }
-    
+
     /**
-     * 
+     *
      * @param int|false $limit
      * @param String|false $order Order by specified param
      * @param bool $desc Is we should use DESC instead ASC
-     * 
+     *
      * @return Array|false
      */
     public function fetchAll($limit = false, $order = false, $desc = false) {
@@ -303,22 +359,22 @@ class ModelRecord {
             $query .= " LIMIT :limit";
         }
         return $this->dbConnect()
-                     ->prepare($query)
-                     ->bindValue(":limit", $limit, PDO::PARAM_INT)
-                     ->execute()
-                     ->fetchAll(PDO::FETCH_ASSOC);
+            ->prepare($query)
+            ->bindValue(":limit", $limit, PDO::PARAM_INT)
+            ->execute()
+            ->fetchAll(PDO::FETCH_ASSOC);
     }
-    
+
     /**
      * Gets param by name.
-     * 
+     *
      * @param String $name
      * @return Mixed
      */
     public function __get($name) {
         return $this->params[$name];
     }
-    
+
     /**
      * @param String $name
      * @return bool
@@ -326,20 +382,20 @@ class ModelRecord {
     public function __isset($name) {
         return isset($this->params[$name]);
     }
-    
+
     /**
      * Sets param by name.
-     * 
+     *
      * @param String $name
      * @param int|String $value
      */
     public function __set($name, $value) {
         $this->params[$name] = $value;
     }
-    
+
     /**
      * Returns array of properties by name.
-     * 
+     *
      * @return Array
      */
     public function propertiesGetByName() {
@@ -348,7 +404,7 @@ class ModelRecord {
         }
         return $this->propertiesByNameArray;
     }
-    
+
     /**
      * We use it for example
      */
@@ -358,10 +414,10 @@ class ModelRecord {
             $this->propertiesByNameArray[$property['name']] = $property;
         }
     }
-    
+
     /**
      * Returns name of primary property.
-     * 
+     *
      * @return String|false
      */
     protected function propertiesGetPrimaryName() {
@@ -372,23 +428,22 @@ class ModelRecord {
         }
         return false;
     }
-    
+
     /**
      * Returns established DB connection.
-     * 
-     * @param String|false $dbName DB name
-     * 
-     * @return PDOChainer
+     *
+     * @return PDOChainer\PDOChainer
      */
-    protected function dbConnect($dbName = false) {
+    protected function dbConnect() {
         $db = $this->container['db'];
-        if ($dbName || $this->db) {
-            if (!$dbName) {
-                $dbName = $this->db;
-            }
-            $db->query("USE {$dbName};");
+        if (!is_null($this->dbName) && $this->dbName !== $this->container['currentDbName']) {
+            $db->query("USE {$this->dbName};");
+            $this->container['currentDbName'] = $this->dbName;
+        } else if (is_null($this->dbName) && $this->container['currentDbName'] !== $this->container['config']['mysql']['dbname']) {
+            $db->query("USE {$this->container['config']['mysql']['dbname']};");
+            $this->container['currentDbName'] = $this->container['config']['mysql']['dbname'];
         }
         return $db;
     }
-    
+
 }

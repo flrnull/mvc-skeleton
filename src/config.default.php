@@ -14,9 +14,9 @@ return array(
     'mysql' => array(
         'host' => '127.0.0.1',
         'port' => '3306',
-        'db'   => 'project',
+        'dbname' => 'project',
         'user' => 'root',
-        'pass' => 'mysqlpasswd',
+        'pass' => '',
     ),
     
     // Project paths
