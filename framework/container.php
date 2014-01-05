@@ -46,4 +46,9 @@ $container['log'] = $container->share(function($c){
     return $log;
 });
 
+// Models factory
+$container['models'] = $container->share(function($c) {
+    return new ModelFactory($c);
+});
+
 return $container;

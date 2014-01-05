@@ -11,7 +11,7 @@ $confPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'src' .
 if (file_exists($confPath)) {
     $GLOBALS['config'] = include_once $confPath;
 }
-include_once __DIR__ . DIRECTORY_SEPARATOR . 'common_functions.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'common_functions.php';
 
 if ($GLOBALS['config']['errors']) {
     ini_set("display_startup_errors", true);
